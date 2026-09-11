@@ -1,24 +1,27 @@
 # nonono
 
-Background agent for MacBooks that plays "no no wait wait" the moment the lid
+Menu bar app for MacBooks that plays "no no wait wait" the moment the lid
 starts closing, and Luigi's "phew, mamma mia" once the closing stops.
-
-The release binary is self-contained: both clips are embedded at build time,
-so one file is the whole install.
 
 ## Install
 
-    make install                  # builds, copies to ~/.local/bin/nonono, starts at login
-    make install ARGS="--quiet 1" # same, with daemon flags baked into the launchd plist
+    make install      # builds build/nonono.app, copies it to /Applications, launches it
     make uninstall
 
-Or by hand: `swift build -c release && .build/release/nonono install`.
-Any copy of the binary can do it: `nonono install` copies itself to
-`~/.local/bin/nonono`, writes `~/Library/LaunchAgents/com.pavel.nonono.plist`,
-and bootstraps it. Log: `~/Library/Logs/nonono.log`.
+A laptop icon appears in the menu bar. Its menu has:
 
-It needs no permissions. The HID manager matches only the lid sensor
+- **Enabled** — toggles the lid monitoring (remembered across launches).
+- **Start at Login** — registers the app as a login item (System Settings ›
+  General › Login Items). Requires the app to live in /Applications.
+- **Test Sounds** — plays both clips.
+- **Quit**
+
+No permissions are needed. The HID manager matches only the lid sensor
 interface, so it never opens a keyboard and never triggers Input Monitoring.
+Both clips are embedded in the binary; the bundle has no external resources.
+
+The app is ad-hoc signed. It runs fine locally; distributing it to other Macs
+through a browser download would need Developer ID signing and notarization.
 
 ## Behaviour
 
@@ -30,21 +33,22 @@ Starting a clip always cuts the other one off.
 
 The sensor reports whole degrees at most every ~100 ms; a slow hand close can
 pause 1–2 s between 1° steps, so a very slow close may trigger *phew* mid-close.
-Raise `--quiet` if that annoys you.
+
+Tunables, read at launch from the app's defaults:
+
+    defaults write com.pavel.nonono quietSeconds -float 1.0   # default 0.5
+    defaults write com.pavel.nonono minDrop -int 1            # default 2
+    defaults write com.pavel.nonono closedBelow -int 0        # default 10
+    defaults write com.pavel.nonono intervalSeconds -float 0.1  # default 0.05
+
+Events are in the unified log:
+
+    log show --last 1h --predicate 'subsystem == "com.pavel.nonono"'
 
 ## Layout
 
-- `Sources/NonoCore/ClosingDetector.swift` — pure state machine (unit tested).
+- `Sources/NonoCore/ClosingDetector.swift` — pure state machine (unit tested, `swift test`).
 - `Sources/CSounds/` — embeds `sounds/*.mp3` into the binary via `.incbin`.
 - `Sources/nonono/` — hinge sensor read (IOKit HID 0x05AC:0x8104, usage 0x20/0x8A),
-  AVAudioPlayer playback, 50 ms poll loop, launchd installer.
-
-## Develop
-
-    swift test
-    .build/release/nonono --dry-run -v   # log events, no audio
-    .build/release/nonono --test-sounds  # play both clips once
-    .build/release/nonono --help
-
-Flags: `--quiet S` (0.5), `--min-drop DEG` (2), `--closed-below DEG` (10),
-`--interval S` (0.05).
+  AVAudioPlayer playback, poll loop, AppKit status item.
+- `scripts/bundle.sh` — wraps the release binary in an ad-hoc signed `.app`.
