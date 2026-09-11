@@ -55,9 +55,9 @@ final class LidMonitor {
     private func tick() {
         guard let angle = sensor.read() else { return }
         guard let event = detector.update(angle: angle, at: ProcessInfo.processInfo.systemUptime) else { return }
-        let clip = clip(for: event, mode: mode)
-        log("\(event) at \(angle) -> \(clip.map { "\($0)" } ?? "silence")")
-        if let clip { player.play(clip) }
+        let action = action(for: event, mode: mode)
+        log("\(event) at \(angle) -> \(action.map { "\($0)" } ?? "nothing")")
+        if let action { player.perform(action) }
     }
 }
 

@@ -16,13 +16,22 @@ final class SoundPlayer {
     }
 
     func play(_ clip: Clip) {
-        for (c, p) in players where c != clip {
+        stopAll()
+        guard let p = players[clip] else { return }
+        p.play()
+    }
+
+    func stopAll() {
+        for p in players.values {
             p.stop()
             p.currentTime = 0
         }
-        guard let p = players[clip] else { return }
-        p.stop()
-        p.currentTime = 0
-        p.play()
+    }
+
+    func perform(_ action: SoundAction) {
+        switch action {
+        case .play(let clip): play(clip)
+        case .stop: stopAll()
+        }
     }
 }

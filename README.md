@@ -25,8 +25,8 @@ A laptop icon appears in the menu bar. Its menu has:
 
 - **Enabled** — toggles the lid monitoring (remembered across launches).
 - **Mode** — *Nonono* (default): "no no wait wait" while closing, "phew" when
-  it stops. *Sad violin*: the violin once per closing episode, nothing when it
-  stops; closing further after a stop plays it again. Remembered across launches.
+  it stops. *Sad violin*: the violin while closing, cut off the moment the
+  closing stops; closing further starts it again. Remembered across launches.
 - **Start at Login** — registers the app as a login item (System Settings ›
   General › Login Items). Requires the app to live in /Applications.
 - **Test Sounds** — plays the current mode's clips.
