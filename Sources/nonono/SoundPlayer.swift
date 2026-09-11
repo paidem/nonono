@@ -1,13 +1,14 @@
 import AVFoundation
+import CSounds
 
-/// Two preloaded clips; starting one always cuts the other off.
+/// Two preloaded clips, embedded in the binary; starting one always cuts the other off.
 final class SoundPlayer {
     private let wait: AVAudioPlayer
     private let phew: AVAudioPlayer
 
-    init(soundsDir: URL) throws {
-        wait = try AVAudioPlayer(contentsOf: soundsDir.appendingPathComponent("no-no-wait-wait.mp3"))
-        phew = try AVAudioPlayer(contentsOf: soundsDir.appendingPathComponent("luigi-phew-mamma-mia.mp3"))
+    init() throws {
+        wait = try AVAudioPlayer(data: Data(bytes: nonono_wait_mp3(), count: nonono_wait_mp3_len()))
+        phew = try AVAudioPlayer(data: Data(bytes: nonono_phew_mp3(), count: nonono_phew_mp3_len()))
         wait.prepareToPlay()
         phew.prepareToPlay()
     }

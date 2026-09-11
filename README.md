@@ -3,10 +3,22 @@
 Background agent for MacBooks that plays "no no wait wait" the moment the lid
 starts closing, and Luigi's "phew, mamma mia" once the closing stops.
 
-- `Sources/NonoCore/ClosingDetector.swift` — pure state machine (unit tested).
-- `Sources/nonono/` — hinge sensor read (IOKit HID 0x05AC:0x8104, usage 0x20/0x8A),
-  AVAudioPlayer playback, 50 ms poll loop.
-- `sounds/` — the two clips.
+The release binary is self-contained: both clips are embedded at build time,
+so one file is the whole install.
+
+## Install
+
+    make install                  # builds, copies to ~/.local/bin/nonono, starts at login
+    make install ARGS="--quiet 1" # same, with daemon flags baked into the launchd plist
+    make uninstall
+
+Or by hand: `swift build -c release && .build/release/nonono install`.
+Any copy of the binary can do it: `nonono install` copies itself to
+`~/.local/bin/nonono`, writes `~/Library/LaunchAgents/com.pavel.nonono.plist`,
+and bootstraps it. Log: `~/Library/Logs/nonono.log`.
+
+It needs no permissions. The HID manager matches only the lid sensor
+interface, so it never opens a keyboard and never triggers Input Monitoring.
 
 ## Behaviour
 
@@ -20,14 +32,19 @@ The sensor reports whole degrees at most every ~100 ms; a slow hand close can
 pause 1–2 s between 1° steps, so a very slow close may trigger *phew* mid-close.
 Raise `--quiet` if that annoys you.
 
-## Use
+## Layout
 
-    swift test                           # detector tests
-    swift build -c release
+- `Sources/NonoCore/ClosingDetector.swift` — pure state machine (unit tested).
+- `Sources/CSounds/` — embeds `sounds/*.mp3` into the binary via `.incbin`.
+- `Sources/nonono/` — hinge sensor read (IOKit HID 0x05AC:0x8104, usage 0x20/0x8A),
+  AVAudioPlayer playback, 50 ms poll loop, launchd installer.
+
+## Develop
+
+    swift test
     .build/release/nonono --dry-run -v   # log events, no audio
     .build/release/nonono --test-sounds  # play both clips once
-    scripts/install.sh                   # launchd agent, starts at login, log in ~/Library/Logs/nonono.log
-    scripts/uninstall.sh
+    .build/release/nonono --help
 
 Flags: `--quiet S` (0.5), `--min-drop DEG` (2), `--closed-below DEG` (10),
-`--interval S` (0.05), `--sounds DIR`.
+`--interval S` (0.05).

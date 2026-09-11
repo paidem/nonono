@@ -9,9 +9,13 @@ let package = Package(
             name: "NonoCore",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
+        .target(
+            name: "CSounds",
+            cSettings: [.headerSearchPath("../../sounds")]
+        ),
         .executableTarget(
             name: "nonono",
-            dependencies: ["NonoCore"],
+            dependencies: ["NonoCore", "CSounds"],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(

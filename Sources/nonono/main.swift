@@ -9,29 +9,27 @@ struct Options {
     var quietSeconds = 0.5
     var minDrop = 2
     var closedBelow = 10
-    var soundsDir = Options.defaultSoundsDir()
     var dryRun = false
     var verbose = false
     var testSounds = false
 
-    /// Nearest `sounds/` directory above the binary (works from `.build/release`
-    /// and from the arch-specific directory it links to), else `./sounds`.
-    static func defaultSoundsDir() -> URL {
-        var dir = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
-            .deletingLastPathComponent()
-        while dir.path != "/" {
-            let candidate = dir.appendingPathComponent("sounds")
-            if FileManager.default.fileExists(atPath: candidate.appendingPathComponent("no-no-wait-wait.mp3").path) {
-                return candidate
-            }
-            dir = dir.deletingLastPathComponent()
-        }
-        return URL(fileURLWithPath: "sounds")
-    }
+    static let usage = """
+        usage: nonono [options]            run in the foreground
+               nonono install [options]    copy to ~/.local/bin and start at login via launchd
+               nonono uninstall            stop and remove the launchd agent
+        options:
+          --interval S        poll period in seconds (default 0.05)
+          --quiet S           seconds without a further drop before "phew" (default 0.5)
+          --min-drop DEG      degrees below rest that count as closing (default 2)
+          --closed-below DEG  angles below this count as shut, no "phew" (default 10)
+          --dry-run           log events, play nothing
+          --verbose, -v       log every angle change
+          --test-sounds       play both clips once and exit
+        """
 
-    static func parse() -> Options {
+    static func parse(_ arguments: [String]) -> Options {
         var o = Options()
-        var args = CommandLine.arguments.dropFirst().makeIterator()
+        var args = arguments.makeIterator()
         func value(_ flag: String) -> String {
             guard let v = args.next() else { fail("\(flag) needs a value") }
             return v
@@ -50,24 +48,11 @@ struct Options {
             case "--quiet": o.quietSeconds = double(a)
             case "--min-drop": o.minDrop = int(a)
             case "--closed-below": o.closedBelow = int(a)
-            case "--sounds": o.soundsDir = URL(fileURLWithPath: value(a))
             case "--dry-run": o.dryRun = true
             case "--test-sounds": o.testSounds = true
             case "--verbose", "-v": o.verbose = true
-            case "--help", "-h":
-                print("""
-                usage: nonono [options]
-                  --interval S      poll period in seconds (default 0.05)
-                  --quiet S         seconds without a further drop before "phew" (default 0.5)
-                  --min-drop DEG    degrees below rest that count as closing (default 2)
-                  --closed-below DEG  angles below this count as shut, no "phew" (default 10)
-                  --sounds DIR      directory holding the two mp3 files
-                  --dry-run         log events, play nothing
-                  --test-sounds     play both clips once and exit
-                  --verbose         log every angle change
-                """)
-                exit(0)
-            default: fail("unknown argument \(a)")
+            case "--help", "-h": print(usage); exit(0)
+            default: fail("unknown argument \(a)\n\(usage)")
             }
         }
         return o
@@ -85,15 +70,30 @@ func log(_ msg: String) {
     fflush(stdout)
 }
 
-let options = Options.parse()
 setvbuf(stdout, nil, _IOLBF, 0)
+var arguments = Array(CommandLine.arguments.dropFirst())
+
+switch arguments.first {
+case "install":
+    let daemonArgs = Array(arguments.dropFirst())
+    _ = Options.parse(daemonArgs)   // validate before writing them into the plist
+    do { try Installer.install(daemonArgs: daemonArgs) } catch { fail("install: \(error)") }
+    exit(0)
+case "uninstall":
+    do { try Installer.uninstall() } catch { fail("uninstall: \(error)") }
+    exit(0)
+default:
+    break
+}
+
+let options = Options.parse(arguments)
 
 let player: SoundPlayer?
 if options.dryRun {
     player = nil
 } else {
-    do { player = try SoundPlayer(soundsDir: options.soundsDir) }
-    catch { fail("cannot load sounds from \(options.soundsDir.path): \(error)") }
+    do { player = try SoundPlayer() }
+    catch { fail("cannot decode embedded sounds: \(error)") }
 }
 
 if options.testSounds {
@@ -113,7 +113,7 @@ var detector = ClosingDetector(minDrop: options.minDrop,
                                quietSeconds: options.quietSeconds,
                                closedBelow: options.closedBelow)
 var lastLogged: Int?
-log("started, polling every \(options.intervalSeconds)s, quiet \(options.quietSeconds)s, sounds \(options.dryRun ? "off" : options.soundsDir.path)")
+log("started, polling every \(options.intervalSeconds)s, quiet \(options.quietSeconds)s, sounds \(options.dryRun ? "off" : "on")")
 
 signal(SIGTERM) { _ in exit(0) }
 signal(SIGINT) { _ in exit(0) }
