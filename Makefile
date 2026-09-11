@@ -15,7 +15,7 @@ app:
 # Copies the bundle to /Applications and launches it. Use the menu bar icon to
 # enable Start at Login.
 install: app
-	-osascript -e 'tell application "nonono" to quit' 2>/dev/null
+	-osascript -e 'tell application "nonono" to quit' 2>/dev/null; sleep 1
 	rm -rf /Applications/nonono.app
 	cp -R build/nonono.app /Applications/nonono.app
 	open /Applications/nonono.app

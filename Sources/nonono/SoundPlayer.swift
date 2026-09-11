@@ -1,26 +1,28 @@
 import AVFoundation
 import CSounds
+import NonoCore
 
-/// Two preloaded clips, embedded in the binary; starting one always cuts the other off.
+/// Preloaded clips, embedded in the binary; starting one always cuts the others off.
 final class SoundPlayer {
-    private let wait: AVAudioPlayer
-    private let phew: AVAudioPlayer
+    private let players: [Clip: AVAudioPlayer]
 
     init() throws {
-        wait = try AVAudioPlayer(data: Data(bytes: nonono_wait_mp3(), count: nonono_wait_mp3_len()))
-        phew = try AVAudioPlayer(data: Data(bytes: nonono_phew_mp3(), count: nonono_phew_mp3_len()))
-        wait.prepareToPlay()
-        phew.prepareToPlay()
+        players = [
+            .wait: try AVAudioPlayer(data: Data(bytes: nonono_wait_mp3(), count: nonono_wait_mp3_len())),
+            .phew: try AVAudioPlayer(data: Data(bytes: nonono_phew_mp3(), count: nonono_phew_mp3_len())),
+            .violin: try AVAudioPlayer(data: Data(bytes: nonono_violin_mp3(), count: nonono_violin_mp3_len())),
+        ]
+        players.values.forEach { $0.prepareToPlay() }
     }
 
-    func playWait() { play(wait, stopping: phew) }
-    func playPhew() { play(phew, stopping: wait) }
-
-    private func play(_ player: AVAudioPlayer, stopping other: AVAudioPlayer) {
-        other.stop()
-        other.currentTime = 0
-        player.stop()
-        player.currentTime = 0
-        player.play()
+    func play(_ clip: Clip) {
+        for (c, p) in players where c != clip {
+            p.stop()
+            p.currentTime = 0
+        }
+        guard let p = players[clip] else { return }
+        p.stop()
+        p.currentTime = 0
+        p.play()
     }
 }

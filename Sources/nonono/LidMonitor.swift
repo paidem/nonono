@@ -10,6 +10,7 @@ final class LidMonitor {
     private var detector: ClosingDetector
     private var timer: Timer?
     let intervalSeconds: Double
+    var mode: Mode = .nonono
 
     init?(defaults: UserDefaults = .standard) {
         guard let sensor = LidAngleSensor(), let player = try? SoundPlayer() else { return nil }
@@ -42,24 +43,21 @@ final class LidMonitor {
     }
 
     func testSounds() {
-        player.playWait()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [player] in player.playPhew() }
+        switch mode {
+        case .nonono:
+            player.play(.wait)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [player] in player.play(.phew) }
+        case .sadViolin:
+            player.play(.violin)
+        }
     }
 
     private func tick() {
         guard let angle = sensor.read() else { return }
-        switch detector.update(angle: angle, at: ProcessInfo.processInfo.systemUptime) {
-        case .closingStarted:
-            log("closing at \(angle) -> no no wait wait")
-            player.playWait()
-        case .closingStopped:
-            log("stopped at \(angle) -> phew")
-            player.playPhew()
-        case .closedFully:
-            log("shut at \(angle)")
-        case nil:
-            break
-        }
+        guard let event = detector.update(angle: angle, at: ProcessInfo.processInfo.systemUptime) else { return }
+        let clip = clip(for: event, mode: mode)
+        log("\(event) at \(angle) -> \(clip.map { "\($0)" } ?? "silence")")
+        if let clip { player.play(clip) }
     }
 }
 

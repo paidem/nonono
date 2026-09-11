@@ -24,14 +24,17 @@ From source:
 A laptop icon appears in the menu bar. Its menu has:
 
 - **Enabled** — toggles the lid monitoring (remembered across launches).
+- **Mode** — *Nonono* (default): "no no wait wait" while closing, "phew" when
+  it stops. *Sad violin*: the violin once per closing episode, nothing when it
+  stops; closing further after a stop plays it again. Remembered across launches.
 - **Start at Login** — registers the app as a login item (System Settings ›
   General › Login Items). Requires the app to live in /Applications.
-- **Test Sounds** — plays both clips.
+- **Test Sounds** — plays the current mode's clips.
 - **Quit**
 
 No permissions are needed. The HID manager matches only the lid sensor
 interface, so it never opens a keyboard and never triggers Input Monitoring.
-Both clips are embedded in the binary; the bundle has no external resources.
+All clips are embedded in the binary; the bundle has no external resources.
 
 The release is ad-hoc signed, hence the Open Anyway step. With an Apple
 Developer ID, `make release SIGN_IDENTITY=...` followed by `make notarize`
@@ -62,6 +65,7 @@ Events are in the unified log:
 ## Layout
 
 - `Sources/NonoCore/ClosingDetector.swift` — pure state machine (unit tested, `swift test`).
+- `Sources/NonoCore/SoundPlan.swift` — which clip each event triggers per mode.
 - `Sources/CSounds/` — embeds `sounds/*.mp3` into the binary via `.incbin`.
 - `Sources/nonono/` — hinge sensor read (IOKit HID 0x05AC:0x8104, usage 0x20/0x8A),
   AVAudioPlayer playback, poll loop, AppKit status item.
