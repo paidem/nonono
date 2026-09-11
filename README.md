@@ -5,8 +5,21 @@ starts closing, and Luigi's "phew, mamma mia" once the closing stops.
 
 ## Install
 
+Download `nonono-<version>.zip` from the
+[latest release](https://github.com/paidem/nonono/releases/latest), unzip it,
+and drag `nonono.app` to Applications.
+
+The app is not notarized, so the first launch is blocked with "Apple could not
+verify this app". Open System Settings › Privacy & Security, scroll down, and
+click **Open Anyway**. Or clear the quarantine flag once from a terminal:
+
+    xattr -dr com.apple.quarantine /Applications/nonono.app
+
+From source:
+
     make install      # builds build/nonono.app, copies it to /Applications, launches it
     make uninstall
+    make release VERSION=0.0.2   # universal arm64+x86_64 zip in build/, for a GitHub release
 
 A laptop icon appears in the menu bar. Its menu has:
 
@@ -20,8 +33,9 @@ No permissions are needed. The HID manager matches only the lid sensor
 interface, so it never opens a keyboard and never triggers Input Monitoring.
 Both clips are embedded in the binary; the bundle has no external resources.
 
-The app is ad-hoc signed. It runs fine locally; distributing it to other Macs
-through a browser download would need Developer ID signing and notarization.
+The release is ad-hoc signed, hence the Open Anyway step. With an Apple
+Developer ID, `make release SIGN_IDENTITY=...` followed by `make notarize`
+produces a build that opens without it; see the Makefile.
 
 ## Behaviour
 
